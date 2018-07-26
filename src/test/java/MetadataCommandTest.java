@@ -1,4 +1,3 @@
-import de.embl.cba.metadata.MetadataCommand;
 import net.imagej.ImageJ;
 
 public class MetadataCommandTest

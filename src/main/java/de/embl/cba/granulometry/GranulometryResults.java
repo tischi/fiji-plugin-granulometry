@@ -1,5 +1,7 @@
-package main.java.de.embl.cba.granulometry;
+package de.embl.cba.granulometry;
 
 public class GranulometryResults
 {
+
+
 }
