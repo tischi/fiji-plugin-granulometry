@@ -1,15 +1,14 @@
 package de.embl.cba.granulometry;
 
+import net.imglib2.Cursor;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.algorithm.morphology.Opening;
 import net.imglib2.algorithm.neighborhood.HyperSphereShape;
-import net.imglib2.algorithm.neighborhood.Shape;
-import net.imglib2.algorithm.region.hypersphere.HyperSphere;
 import net.imglib2.img.display.imagej.ImageJFunctions;
+import net.imglib2.loops.LoopBuilder;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
-
-import java.util.ArrayList;
+import net.imglib2.view.Views;
 
 public class GranulometryComputer < T extends RealType< T > & NativeType< T > >
 {
@@ -24,16 +23,54 @@ public class GranulometryComputer < T extends RealType< T > & NativeType< T > >
 	public GranulometryResults compute( RandomAccessibleInterval< T > rai )
 	{
 
-		if ( settings.showIntermediateResults ) ImageJFunctions.show( rai );
+		// TODO: Evaluation interval (possibly only central plane for the data from Carsten).
 
-		HyperSphereShape openingStrel = new HyperSphereShape( settings.openingRadius );
+		if ( settings.showIntermediateResults ) ImageJFunctions.show( rai, "input data" );
+
+		final GranulometryResults results = new GranulometryResults();
+		results.spatialCalibrationUnit = settings.calibrationUnit;
 
 		final RandomAccessibleInterval< T > opened = Utils.copyAsArrayImg( rai );
-		Opening.openInPlace( opened, settings.interval, openingStrel, settings.numThreads );
 
-		if ( settings.showIntermediateResults ) ImageJFunctions.show( opened );
+		for ( long openingRadius = settings.openingRadiusMin; openingRadius <= settings.openingRadiusMax; openingRadius += settings.openingRadiusDelta )
+		{
+			final HyperSphereShape openingStrel = new HyperSphereShape( openingRadius );
+			final RandomAccessibleInterval< T > previousOpened = Utils.copyAsArrayImg( opened );
+			Opening.openInPlace( opened, settings.interval, openingStrel, settings.numThreads );
 
-		return null;
+			final RandomAccessibleInterval< T > difference = createDifference( previousOpened, opened );
+			double sum = computeSum( difference );
+
+			results.radii.add( openingRadius * settings.calibrationValue );
+			results.values.add( sum );
+
+			Utils.log( "Radius " + openingRadius * settings.calibrationValue + " " + settings.calibrationUnit + " : " + sum );
+
+			if ( settings.showIntermediateResults ) ImageJFunctions.show( difference, "radius " + openingRadius );
+		}
+
+		return results;
+	}
+
+	private double computeSum( RandomAccessibleInterval< T > difference )
+	{
+		double sum = 0;
+		final Cursor< T > cursor = Views.iterable( difference ).cursor();
+		while( cursor.hasNext() )
+		{
+			sum += cursor.next().getRealDouble();
+		}
+		return sum;
+	}
+
+	private RandomAccessibleInterval< T > createDifference( RandomAccessibleInterval< T > imgA, RandomAccessibleInterval< T > imgB )
+	{
+		final RandomAccessibleInterval< T > result = Utils.copyAsArrayImg( imgA );
+
+		LoopBuilder.setImages( result, imgA, imgB ).forEachPixel( ( r, a, b ) -> r.setReal( a.getRealDouble() - b.getRealDouble() ) );
+
+		return result;
+
 	}
 
 }

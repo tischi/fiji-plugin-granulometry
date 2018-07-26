@@ -2,6 +2,7 @@
 import de.embl.cba.granulometry.GranulometryComputer;
 import de.embl.cba.granulometry.GranulometryResults;
 import de.embl.cba.granulometry.GranulometrySettings;
+import de.embl.cba.granulometry.Utils;
 import ij.IJ;
 import ij.ImageJ;
 
@@ -27,20 +28,32 @@ import java.util.*;
 public class GranulometryComputerTest
 {
 
-	public static < T extends RealType< T > & NativeType< T > > void main( String[] args ) throws Exception {
+	public static < T extends RealType< T > & NativeType< T > > void main( String[] args ) throws Exception
+	{
 
 		ImageJ.main( args );
 
 		String imagePath = "/Users/tischer/Documents/fiji-plugin-granulometry/src/test/resources/em-tomo-scale0.5-blur2.0-binary.tif";
 		final ImagePlus imagePlus = IJ.openImage( imagePath );
+
 		final RandomAccessibleInterval< T > rai = ImageJFunctions.wrapReal( imagePlus );
 
 		final GranulometrySettings granulometrySettings = new GranulometrySettings();
 		granulometrySettings.numThreads = 4;
 		granulometrySettings.interval = new FinalInterval( Intervals.minAsLongArray( rai ), Intervals.maxAsLongArray( rai ) );
-		final GranulometryComputer< T > granulometryComputer = new GranulometryComputer<>( granulometrySettings );
+		granulometrySettings.calibrationUnit = imagePlus.getCalibration().getUnit();
+		granulometrySettings.calibrationValue = imagePlus.getCalibration().pixelWidth;
+
+		if ( imagePlus.getCalibration().pixelWidth != imagePlus.getCalibration().pixelHeight )
+		{
+			IJ.showMessage( "Only isotropic data is supported!" );
+			return;
+		}
+
+		final GranulometryComputer granulometryComputer = new GranulometryComputer<>( granulometrySettings );
 		final GranulometryResults results = granulometryComputer.compute( rai );
 
+		Utils.plot( results.radii, results.values, "radius [" + results.spatialCalibrationUnit + "]", "" );
 
 	}
 
