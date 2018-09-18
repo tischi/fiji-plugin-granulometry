@@ -25,12 +25,16 @@ public class GranulometryComputer < T extends RealType< T > & NativeType< T > >
 
 		// TODO: Evaluation interval (possibly only central plane for the data from Carsten).
 
+		Utils.log( "Granulometry computation (fraction of pixels at given radius):" );
+
 		if ( settings.showIntermediateResults ) ImageJFunctions.show( rai, "input data" );
 
 		final GranulometryResults results = new GranulometryResults();
 		results.spatialCalibrationUnit = settings.calibrationUnit;
 
 		final RandomAccessibleInterval< T > opened = Utils.copyAsArrayImg( rai );
+
+		final double totalSum = computeSum( rai );
 
 		for ( long openingRadius = settings.openingRadiusMin; openingRadius <= settings.openingRadiusMax; openingRadius += settings.openingRadiusDelta )
 		{
@@ -44,7 +48,9 @@ public class GranulometryComputer < T extends RealType< T > & NativeType< T > >
 			results.radii.add( openingRadius * settings.calibrationValue );
 			results.values.add( sum );
 
-			Utils.log( "Radius " + openingRadius * settings.calibrationValue + " " + settings.calibrationUnit + " : " + sum );
+			Utils.log( "Radius [" + settings.calibrationUnit + "] " +
+					String.format( " %.3f", openingRadius * settings.calibrationValue )
+					+ ": " + String.format( " %.3f", sum / totalSum ) );
 
 			if ( settings.showIntermediateResults ) ImageJFunctions.show( difference, "radius " + openingRadius );
 		}
