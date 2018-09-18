@@ -2,7 +2,7 @@ package de.embl.cba.granulometry;
 
 import net.imglib2.FinalInterval;
 
-public class GranulometrySettings
+public class settings
 {
 	public long openingRadiusMin = 1;
 	public long openingRadiusMax = 10;

@@ -12,9 +12,9 @@ import net.imglib2.view.Views;
 
 public class GranulometryComputer < T extends RealType< T > & NativeType< T > >
 {
-	final GranulometrySettings settings;
+	final de.embl.cba.granulometry.settings settings;
 
-	public GranulometryComputer( GranulometrySettings settings )
+	public GranulometryComputer( de.embl.cba.granulometry.settings settings )
 	{
 		this.settings = settings;
 	}
@@ -24,8 +24,6 @@ public class GranulometryComputer < T extends RealType< T > & NativeType< T > >
 	{
 
 		// TODO: Evaluation interval (possibly only central plane for the data from Carsten).
-
-		Utils.log( "Granulometry computation (fraction of pixels at given radius):" );
 
 		if ( settings.showIntermediateResults ) ImageJFunctions.show( rai, "input data" );
 
@@ -46,16 +44,22 @@ public class GranulometryComputer < T extends RealType< T > & NativeType< T > >
 			double sum = computeSum( difference );
 
 			results.radii.add( openingRadius * settings.calibrationValue );
-			results.values.add( sum );
+			results.widths.add( 2 * openingRadius * settings.calibrationValue );
+			results.values.add( sum / totalSum );
 
-			Utils.log( "Radius [" + settings.calibrationUnit + "] " +
-					String.format( " %.3f", openingRadius * settings.calibrationValue )
-					+ ": " + String.format( " %.3f", sum / totalSum ) );
+			logResult( totalSum, openingRadius, sum );
 
 			if ( settings.showIntermediateResults ) ImageJFunctions.show( difference, "radius " + openingRadius );
 		}
 
 		return results;
+	}
+
+	private void logResult( double totalSum, long openingRadius, double sum )
+	{
+		Utils.log( "Radius [" + settings.calibrationUnit + "] " +
+				String.format( " %.3f", openingRadius * settings.calibrationValue )
+				+ ": " + String.format( " %.3f", sum / totalSum ) );
 	}
 
 	private double computeSum( RandomAccessibleInterval< T > difference )
